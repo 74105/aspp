@@ -87,12 +87,13 @@ class Peer:
 		ivAes 		= '' + cipherList[0] + cipherList[1]
 		encMsg 		= cipherList[2]
 
-		# encrypt iv + aes with RSA
-		encIvAes = crypto.encryptRSA(ivAes, self.peersPK)
+		# encrypt iv + aes with RSA; encrypt id; encrypt pid
+		encIvAes 	= crypto.encryptRSA(ivAes, self.peersPK)
+		encId 		= crypto.encryptRSA(self.id, self.peersPK)
+		encPid 		= crypto.encryptRSA(pid, self.peersPK)
 
-		encIvAesMsg = encIvAes + encMsg
 
-		message = 'M' + str(self.id) + '||' + str(pid) + '||' + encIvAesMsg
+		message = 'M' + str(encId) + '||' + str(encPid) + '||' + encIvAes + encMsg
 
 		self.sendMsg(self.outPort, message)
 
@@ -183,10 +184,13 @@ class Peer:
 			self.sendMsg(self.outPort, msg)
 
 	def recvChatMsg(self, msg):
-		parsed 	= msg[1:].split('||')
-		sender 	= int(parsed[0])
-		rcvr 	= int(parsed[1])
-		ct 		= parsed[2]
+		parsed 		= msg[1:].split('||')
+		encSender 	= int(parsed[0])
+		encRcvr 	= int(parsed[1])
+		ct 			= parsed[2]
+
+		sender  = crypto.decryptRSA(encSender, self.rsaKey)
+		rcvr 	= crypto.decryptRSA(encRcvr, self.rsaKey)
 
 
 		if (self.id == rcvr):
@@ -200,7 +204,7 @@ class Peer:
 
 			decMsg = crypto.decryptAES(iv, Aes, encMsg)
 
-			print decMsg
+			print self.id, decMsg
 		else:
 			self.sendMsg(self.outPort, msg)
 	    

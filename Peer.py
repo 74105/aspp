@@ -81,20 +81,18 @@ class Peer:
 		self.demandKey(pid)
 		sleep(1)
 
-		# returns, iv + AES + encrypted padded message
-		ct = crypto.encryptAES(chatMsg)
+		# returns, [iv, AES, encrypted padded message]
+		cipherList 	= crypto.encryptAES(chatMsg)
 
-		encIvAes 	= ct[0 : AES.block_size+crypto.AES_KEY_SIZE]
-		encMsg 		= ct[AES.block_size+crypto.AES_KEY_SIZE : ]
-		
+		ivAes 		= '' + cipherList[0] + cipherList[1]
+		encMsg 		= cipherList[2]
+
 		# encrypt iv + aes with RSA
-		encIvAes = crypto.encryptRSA(encIvAes, self.peersPK)
-
+		encIvAes = crypto.encryptRSA(ivAes, self.peersPK)
 
 		encIvAesMsg = encIvAes + encMsg
 
-		message = 'M' + str(self.id) + '|' + str(pid) + '|' + encIvAesMsg
-
+		message = 'M' + str(self.id) + '||' + str(pid) + '||' + encIvAesMsg
 
 		self.sendMsg(self.outPort, message)
 
@@ -116,14 +114,6 @@ class Peer:
 		newNodeId = int(parsed[1])
 		newNodeN  = parsed[2]
 		newNodeP  = int(parsed[3])
-
-		#sleep(1)
-		#self.listOfPeers.append(int(msg[2]))
-		# update finger table
-		#for i in range(1, len(self.fingerTable)+1):
-		#	if ( (self.id + (2 ** (i-1)))%(int(msg[2])+1) == int(msg[2])):
-		#		self.fingerTable[i] = int(msg[2])
-		#		break
 
 		if ( self.connectTo == newNodeCt ):
 			self.connectTo = newNodeId
@@ -171,11 +161,6 @@ class Peer:
 			#print 'PEERPEER', self.outPort, self.connectTo, newMsg
 			self.sendMsg(self.outPort, newMsg)
 
-		# finger table solution
-		# if  (p+2^(e-1) > table[e-1]+1 
-		#	switch to that node
-		# else
-		#	print table[e]
 
 	def sendKey(self, msg):
 		parsed = msg[1:].split('|')
@@ -198,7 +183,7 @@ class Peer:
 			self.sendMsg(self.outPort, msg)
 
 	def recvChatMsg(self, msg):
-		parsed 	= msg[1:].split('|')
+		parsed 	= msg[1:].split('||')
 		sender 	= int(parsed[0])
 		rcvr 	= int(parsed[1])
 		ct 		= parsed[2]
@@ -210,15 +195,15 @@ class Peer:
 
 			ivAes = crypto.decryptRSA(encIvAes, self.rsaKey)
 
-			decMsg = crypto.decryptAES(ivAes+encMsg)
+			iv 	= ivAes[0 : AES.block_size]
+			Aes = ivAes[AES.block_size : AES.block_size + crypto.AES_KEY_SIZE]
+
+			decMsg = crypto.decryptAES(iv, Aes, encMsg)
 
 			print decMsg
 		else:
 			self.sendMsg(self.outPort, msg)
 	    
-
-
-
 
 	# main loop to accept incoming connections, runs as a seperate thread as long as the peer is alive
 	def mainLoop(self):
@@ -241,6 +226,7 @@ class Peer:
 		self.inSocket.close()
 		#print 'connection terminated'
 		
+
 
 
 

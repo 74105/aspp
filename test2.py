@@ -7,7 +7,7 @@ if __name__ == "__main__":
 
 	p = 5090
 
-	nodeA = Peer(p, "1,A,1", p)
+	nodeA = Peer(p, "1,A,1", p) #id, name, connectTo
 	nodeB = Peer(p+1, "2,B,1", p)
 	nodeC = Peer(p+2, "3,C,2", p+1)
 	

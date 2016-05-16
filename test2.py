@@ -10,7 +10,7 @@ if __name__ == "__main__":
 	nodeA = Peer(p, "1,A,1", p) #id, name, connectTo
 	nodeB = Peer(p+1, "2,B,1", p)
 	nodeC = Peer(p+2, "3,C,2", p+1)
-	
+
 
 	tA = Thread( target = nodeA.mainLoop )
 	tA.start()
@@ -23,18 +23,18 @@ if __name__ == "__main__":
 		# A joins
 		nodeA.join(0, 0)
 		sleep(1)
-		nodeA.list()
-		sleep(1)
+		#nodeA.list()
+		#sleep(1)
 		# B joins
 		nodeB.join(1, p)
 		sleep(1)
-		nodeA.list()
-		sleep(1)
+		#nodeA.list()
+		#sleep(1)
 		# C joins
 		nodeC.join(2, p+1)
 		sleep(1)
-		nodeA.list()
-		sleep(1)
+		#nodeA.list()
+		#sleep(1)
 
 		#nodeA.demandKey(2)
 		nodeA.sendChatMsg(2, 'hey dude!')
@@ -43,15 +43,15 @@ if __name__ == "__main__":
 		# C leaves
 		nodeC.leave()
 		sleep(1)
-		nodeA.list()
-		sleep(1)
+		#nodeA.list()
+		#sleep(1)
 		# B leaves
 		nodeB.leave()
 		sleep(1)
-		nodeA.list()
-		sleep(1)
+		#nodeA.list()
+		#sleep(1)
 
-		
+
 
 
 		#sleep(2)
@@ -66,15 +66,12 @@ if __name__ == "__main__":
 		#nodeE.printFT()
 		#sleep(1)
 		#nodeF.printFT()
-		#sleep(1)	
-	
+		#sleep(1)
+
 	except Exception as inst:
 		print inst.args
 
-	finally: 
+	finally:
 		nodeA.terminateCon()
 		nodeB.terminateCon()
 		nodeC.terminateCon()
-		
-
-	

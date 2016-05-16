@@ -6,16 +6,17 @@ from time import sleep, strftime
 from Crypto.PublicKey import RSA
 import crypto
 from Crypto.Cipher import AES
+from hashlib import sha512
 
 class Peer:
 	# initialize the peer
 	# conf = id, name, connectTo
-	def __init__(self, inPort, config, outPort): 
+	def __init__(self, inPort, config, outPort):
 		self.isPeerActive 	= 1
-		conf 				= config.split(',')		
+		conf 				= config.split(',')
 		self.id 			= int(conf[0])
 		self.name 			= conf[1]
-		self.connectTo 		= int(conf[2])	
+		self.connectTo 		= int(conf[2])
 		self.outAddr 		= '127.0.0.1'
 		self.outPort 		= int(outPort)
 		self.inAddr 		= '127.0.0.1'
@@ -34,7 +35,7 @@ class Peer:
 
 	# Init socket and connect to another peer
 	def connectToPeer(self, p):
-		self.outSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)	
+		self.outSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.outSocket.connect((self.outAddr, p))
 
 	##### Demander Functions #####
@@ -92,8 +93,11 @@ class Peer:
 		encId 		= crypto.encryptRSA(self.id, self.peersPK)
 		encPid 		= crypto.encryptRSA(pid, self.peersPK)
 
+		digest = sha512(chatMsg).digest()
 
-		message = 'M' + str(encId) + '||' + str(encPid) + '||' + encIvAes + encMsg
+		print self.name, 'from', self.id, 'to', pid, ': ', chatMsg
+
+		message = 'M' + str(encId) + '||' + str(encPid) + '||' + encIvAes + digest + encMsg
 
 		self.sendMsg(self.outPort, message)
 
@@ -102,7 +106,7 @@ class Peer:
 	# handle the incoming requests
 	def threadHandler(self):
 		data = self.inCon.recv(1024)
-		self.inCon.send('ACK') 
+		self.inCon.send('ACK')
 		self.inCon.close()
 
 		msgType = data[0]
@@ -122,7 +126,7 @@ class Peer:
 			print 'JOIN:', newNodeId, 'at', strftime("%H:%M:%S")
 		else:
 			self.sendMsg(self.outPort, msg)
-		
+
 
 	# remove peer from the network
 	def removePeer(self, msg):
@@ -140,7 +144,7 @@ class Peer:
 			self.outPort = remNodeCtP
 			# Adr is local host, no need to change
 			print 'LEAVE:', remNodeId, 'at', strftime("%H:%M:%S")
-		else:	
+		else:
 			self.sendMsg(self.outPort, msg)
 
 	# list all peers
@@ -157,7 +161,7 @@ class Peer:
 			stdout.write('LIST: ')
 			stdout.write('|'.join(listOfPeers))
 			print ' at', strftime("%H:%M:%S")
-		else: 
+		else:
 			newMsg = msg + '|' + str(self.id)
 			#print 'PEERPEER', self.outPort, self.connectTo, newMsg
 			self.sendMsg(self.outPort, newMsg)
@@ -169,7 +173,7 @@ class Peer:
 		rcvr   = int(parsed[1])
 		isDemanding = int(parsed[2])
 		key = parsed[-1] # last one, it is not used while returning an answer, in this case it is equal to isDemanding,
-		
+
 
 		if (self.id == rcvr):
 			if isDemanding == 1:
@@ -194,8 +198,9 @@ class Peer:
 
 
 		if (self.id == rcvr):
-			encIvAes 	= ct[0 : 128]
-			encMsg 		= ct[128 : ]
+			encIvAes 	= ct[0 	 : 128]
+			digest 		= ct[128 : 192]
+			encMsg 		= ct[192 : ]
 
 			ivAes = crypto.decryptRSA(encIvAes, self.rsaKey)
 
@@ -204,10 +209,15 @@ class Peer:
 
 			decMsg = crypto.decryptAES(iv, Aes, encMsg)
 
-			print self.id, decMsg
+			print self.name, 'from', sender, 'to', rcvr, ': ', decMsg
+
+			if (digest == sha512(decMsg).digest()):
+				print self.id, decMsg
+			else:
+				print "Message is changed!", decMsg
 		else:
 			self.sendMsg(self.outPort, msg)
-	    
+
 
 	# main loop to accept incoming connections, runs as a seperate thread as long as the peer is alive
 	def mainLoop(self):
@@ -215,7 +225,7 @@ class Peer:
 		self.initServer()
 
 		# main loop to accept connections
-		while(self.isPeerActive):	# OR TIMEOUT???	
+		while(self.isPeerActive):	# OR TIMEOUT???
 			self.inCon, addr = self.inSocket.accept()
 
 			if (self.isPeerActive):
@@ -229,7 +239,7 @@ class Peer:
 		socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect( (self.inAddr, self.inPort))
 		self.inSocket.close()
 		#print 'connection terminated'
-		
+
 
 
 
@@ -272,5 +282,3 @@ class Peer:
 	#		newMsg = msg[0:4] + str(e) + msg[5:]
 			# sendmessage to next peer
 	#		self.sendMsg(port, newMsg)
-
-
